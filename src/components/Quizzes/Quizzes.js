@@ -80,7 +80,7 @@ export default function Quizzes() {
         <>
           <Item.Meta>
             <Message size="huge" floating>
-              <b>{`${questionIndex + 1}/${data.length}`}.  {data[questionIndex].question}`</b>
+              <b>{`${questionIndex + 1}/${data.length}`}.  {data[questionIndex].question}</b>
             </Message>
             <br />
             <Item.Description>
