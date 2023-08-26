@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Component } from "react";
 import "./Quizzes.css";
 import { Button, Item, Message, Divider, Menu, Modal } from "semantic-ui-react";
 import { quizzes } from "../../data/quizzes";
@@ -13,146 +13,161 @@ questions.forEach((question) => {
   question.options = shuffleArray(question.options);
 });
 
-export default function Quizzes() {
-  const data = questions;
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [userResponses, setUserResponses] = useState(
-    Array(data.length).fill(null)
-  ); // Initialize an array to store user responses
-  const [isFinishModalOpen, setFinishModalOpen] = useState(false);
-  const [quizCompleted, setQuizCompleted] = useState(false); // Track quiz completion
-  const [questionsAndAnswers, setQuestionsAndAnswers] = useState([]); // State for questions and answers
+export default class Quizzes extends Component {
+  constructor(props) {
+    super(props);
 
-  function openFinishModal() {
-    setFinishModalOpen(true);
+    this.state = {
+      questionIndex: 0,
+      userResponses: Array(questions.length).fill(null),
+      isFinishModalOpen: false,
+      quizCompleted: false,
+      questionsAndAnswers: [],
+    };
   }
 
-  function closeFinishModal() {
-    setFinishModalOpen(false);
-  }
+  openFinishModal = () => {
+    this.setState({ isFinishModalOpen: true });
+  };
 
-  function handleItemClick(answer) {
-    // Update the user's response for the current question
+  closeFinishModal = () => {
+    this.setState({ isFinishModalOpen: false });
+  };
+
+  handleItemClick = (answer) => {
+    const { questionIndex, userResponses } = this.state;
     const updatedUserResponses = [...userResponses];
     updatedUserResponses[questionIndex] = answer;
-    setUserResponses(updatedUserResponses);
-  }
+    this.setState({ userResponses: updatedUserResponses });
+  };
 
-  function handleNext() {
+  handleNext = () => {
+    const { questionIndex, userResponses } = this.state;
     if (userResponses[questionIndex] !== null) {
-      // Move to the next question or show confirmation dialog when finishing
-      if (questionIndex < data.length - 1) {
-        setQuestionIndex(questionIndex + 1);
+      if (questionIndex < questions.length - 1) {
+        this.setState({ questionIndex: questionIndex + 1 });
       } else {
-        // Open the finish confirmation modal
-        openFinishModal();
+        this.openFinishModal();
       }
     }
-  }
+  };
 
-  function handleFinish() {
-    // Call the checkResults function to get the score and results
-    const { score, results } = checkResults(userResponses, data);
+  handleFinish = () => {
+    const { userResponses } = this.state;
+    const { score, results } = checkResults(userResponses, questions);
 
-    // Log or display the results
     console.log("Quiz completed!");
-    console.log(`Score: ${score}/${data.length}`);
+    console.log(`Score: ${score}/${questions.length}`);
     console.log("Results:", results);
 
-    // Set quizCompleted to true to render the Result component
-    setQuizCompleted(true);
+    this.setState({
+      quizCompleted: true,
+      questionsAndAnswers: results,
+    });
+  };
 
-    setQuestionsAndAnswers(results); // Assuming that `results` contains questions and answers
-  }
-
-  function handlePrevious() {
+  handlePrevious = () => {
+    const { questionIndex } = this.state;
     if (questionIndex > 0) {
-      // Go back to the previous question
-      setQuestionIndex(questionIndex - 1);
+      this.setState({ questionIndex: questionIndex - 1 });
     }
-  } 
+  };
 
-  return (  
-    <div className="quizzes-container">
-      {quizCompleted ? (
-         <QNA questionsAndAnswers={questionsAndAnswers} /> 
-      ) : (
-        <>
-          <Item.Meta>
-            <Message size="huge" floating>
-              <b>{`${questionIndex + 1}/${data.length}`}.  {data[questionIndex].question}</b>
-            </Message>
-            <br />
-            <Item.Description>
-              <h3>Please choose one of the following answers:</h3>
-            </Item.Description>
+  render() {
+    const {
+      questionIndex,
+      userResponses,
+      isFinishModalOpen,
+      quizCompleted,
+      questionsAndAnswers,
+    } = this.state;
+
+    return (
+      <div className="quizzes-container">
+        {quizCompleted ? (
+          <QNA questionsAndAnswers={questionsAndAnswers} />
+        ) : (
+          <>
+            <Item.Meta>
+              <Message size="huge" floating>
+                <b>{`${questionIndex + 1}/${questions.length}`}.  {questions[questionIndex].question}</b>
+              </Message>
+              <br />
+              <Item.Description>
+                <h3>Please choose one of the following answers:</h3>
+              </Item.Description>
+              <Divider />
+              <Menu vertical fluid size="massive">
+                {questions[questionIndex].options.map((option, i) => {
+                  const letter = getLetter(i);
+
+                  return (
+                    <Menu.Item
+                      key={i}
+                      active={userResponses[questionIndex] === option}
+                      onClick={() => this.handleItemClick(option)}
+                    >
+                      <b style={{ marginRight: "8px" }}>{letter}</b>
+                      {option}
+                    </Menu.Item>
+                  );
+                })}
+              </Menu>
+            </Item.Meta>
             <Divider />
-            <Menu vertical fluid size="massive">
-              {data[questionIndex].options.map((option, i) => {
-                const letter = getLetter(i);
-
-                return (
-                  <Menu.Item
-                    key={i}
-                    active={userResponses[questionIndex] === option}
-                    onClick={() => handleItemClick(option)}
-                  >
-                    <b style={{ marginRight: "8px" }}>{letter}</b>
-                    {option}
-                  </Menu.Item>
-                );
-              })}
-            </Menu>
-          </Item.Meta>
-          <Divider />
-          <Item.Extra>
-            {questionIndex > 0 && (
+            <Item.Extra>
+              {questionIndex > 0 && (
+                <Button
+                  primary
+                  content="Previous"
+                  onClick={this.handlePrevious}
+                  floated="left"
+                  size="big"
+                  icon="left chevron"
+                  labelPosition="left"
+                />
+              )}
               <Button
                 primary
-                content="Previous"
-                onClick={handlePrevious}
-                floated="left"
+                content={questionIndex === questions.length - 1 ? "Finish" : "Next"}
+                onClick={
+                  questionIndex === questions.length - 1
+                    ? this.handleFinish
+                    : this.handleNext
+                }
+                floated="right"
                 size="big"
-                icon="left chevron"
-                labelPosition="left"
+                icon={
+                  questionIndex === questions.length - 1 ? "check" : "right chevron"
+                }
+                labelPosition="right"
+                disabled={userResponses[questionIndex] === null}
               />
-            )}
+            </Item.Extra>
+          </>
+        )}
+
+        <Modal open={isFinishModalOpen} onClose={this.closeFinishModal}>
+          <Modal.Header>Finish Quiz</Modal.Header>
+          <Modal.Content>
+            <p>Are you sure you want to finish the quiz?</p>
+          </Modal.Content>
+          <Modal.Actions>
+            <Button secondary content="No" onClick={this.closeFinishModal} />
+
             <Button
               primary
-              content={questionIndex === data.length - 1 ? "Finish" : "Next"}
-              onClick={
-                questionIndex === data.length - 1 ? handleFinish : handleNext
-              }
-              floated="right"
-              size="big"
-              icon={
-                questionIndex === data.length - 1 ? "check" : "right chevron"
-              }
-              labelPosition="right"
-              disabled={userResponses[questionIndex] === null}
+              content="Yes"
+              onClick={() => {
+                this.closeFinishModal();
+                this.handleFinish();
+              }}
             />
-          </Item.Extra>
-        </>
-      )}
-
-      <Modal open={isFinishModalOpen} onClose={closeFinishModal}>
-        <Modal.Header>Finish Quiz</Modal.Header>
-        <Modal.Content>
-          <p>Are you sure you want to finish the quiz?</p>
-        </Modal.Content>
-        <Modal.Actions>
-          <Button secondary content="No" onClick={closeFinishModal} />
-
-          <Button
-            primary
-            content="Yes"
-            onClick={() => {
-              closeFinishModal();
-              handleFinish();
-            }}
-          />
-        </Modal.Actions>
-      </Modal>
-    </div>
-  );
+          </Modal.Actions>
+        </Modal>
+      </div>
+    );
+  }
 }
+
+

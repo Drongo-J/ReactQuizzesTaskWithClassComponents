@@ -1,9 +1,10 @@
-import React from "react";
+import {React, Component} from 'react'
 import "./Header.css";
 
-export default function Header() {
-  return (
-    <header className="site-header">
+export default class Header extends Component {
+  render() {
+    return (
+      <header className="site-header">
       <div className="header-content-left">
         <a href="https://aykhan.net" target="blank" className="my-padding">
           <img
@@ -15,5 +16,6 @@ export default function Header() {
         </a>
       </div>
     </header>
-  );
-}       
+    )
+  }
+}
